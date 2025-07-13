@@ -1,0 +1,26 @@
+{
+  "name": "blog-aggregator-ts",
+  "version": "1.0.0",
+  "description": "RSS feed aggregator",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx ./src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sanghun1Adam1Park/blog-aggregator-ts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sanghun1Adam1Park/blog-aggregator-ts/issues"
+  },
+  "homepage": "https://github.com/Sanghun1Adam1Park/blog-aggregator-ts#readme",
+  "devDependencies": {
+    "@types/node": "^24.0.13",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
