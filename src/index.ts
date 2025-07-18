@@ -10,7 +10,8 @@ import {
   handlerAddFeed,
   handlerFeeds,
   handlerFollow,
-  handlerFollowing
+  handlerFollowing,
+  middlewareLoggedIn
 } from "./command_handler";
 
 async function main() {
@@ -30,10 +31,10 @@ async function main() {
   reigsterCommand(commandsRegistry, "reset", handlerReset);
   reigsterCommand(commandsRegistry, "users", handlerUsers);
   reigsterCommand(commandsRegistry, "agg", handlerAgg);
-  reigsterCommand(commandsRegistry, "addfeed", handlerAddFeed);
+  reigsterCommand(commandsRegistry, "addfeed", middlewareLoggedIn(handlerAddFeed));
   reigsterCommand(commandsRegistry, "feeds", handlerFeeds);
-  reigsterCommand(commandsRegistry, "follow", handlerFollow);
-  reigsterCommand(commandsRegistry, "following", handlerFollowing);
+  reigsterCommand(commandsRegistry, "follow", middlewareLoggedIn(handlerFollow));
+  reigsterCommand(commandsRegistry, "following", middlewareLoggedIn(handlerFollowing));
 
   try {
     await runCommand(commandsRegistry, cmdName, ...cmdArgs);
