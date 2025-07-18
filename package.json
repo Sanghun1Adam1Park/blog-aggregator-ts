@@ -20,7 +20,16 @@
   "homepage": "https://github.com/Sanghun1Adam1Park/blog-aggregator-ts#readme",
   "devDependencies": {
     "@types/node": "^24.0.13",
+    "@types/pg": "^8.15.4",
+    "drizzle-kit": "^0.31.4",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.2",
+    "fast-xml-parser": "^5.2.5",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.16.3",
+    "postgres": "^3.4.7"
   }
 }
