@@ -3,10 +3,10 @@ import { createUser, getUser, resetUsers, getUsers, getUserById } from "./lib/db
 import { fetchFeed } from "./lib/rss";
 import { createFeed, getFeedByUrl, getFeeds } from "./lib/db/queries/feeds";
 import { Feed, User } from "./lib/db/schema";
-import { createFeedFollow, getFeedFollowsForUser } from "./lib/db/queries/feed_follow";
+import { createFeedFollow, getFeedFollowsForUser, deleteFeedFlollow } from "./lib/db/queries/feed_follow";
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>; 
-export type UserCommandHandler = (cmdName: string, user: string, ...args: string[]) => Promise<void>;
+export type UserCommandHandler = (cmdName: string, user: User, ...args: string[]) => Promise<void>;
 export type CommandRegistry = { [key: string]: CommandHandler; };
  
 export function middlewareLoggedIn(
@@ -166,4 +166,21 @@ export async function handlerFollowing(cmdName: string, user: User,  ...args: st
   for (const following of followings) {
     console.log(` - ${following.feedName}`);
   } 
+}
+
+export async function handlerUnfollow(cmdName: string, user: User,  ...args: string[]) {
+  if (args.length !== 1) {
+    throw new Error(`usage: ${cmdName} <url>`);
+  }
+
+  let url = args[0];
+  const currentUser = user; 
+  const feed = await getFeedByUrl(url);
+  const result = await deleteFeedFlollow(currentUser.id, feed.id);
+  
+  if (!result) {
+    throw new Error(`Failed to unfollow feed ${url}`);
+  }
+
+  console.log(`${currentUser.name} unfollowed feed ${feed.name}`);
 }
