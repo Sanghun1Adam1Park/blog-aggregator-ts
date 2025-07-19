@@ -12,7 +12,7 @@ import {
   handlerFollow,
   handlerFollowing,
   middlewareLoggedIn,
-  handlerUnfollow
+  handlerUnfollow,
 } from "./command_handler";
 
 async function main() {

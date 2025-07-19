@@ -1,7 +1,7 @@
 import { readConfig, setUser } from "./config";
 import { createUser, getUser, resetUsers, getUsers, getUserById } from "./lib/db/queries/users";
 import { fetchFeed } from "./lib/rss";
-import { createFeed, getFeedByUrl, getFeeds } from "./lib/db/queries/feeds";
+import { createFeed, getFeedByUrl, getFeeds, getNextFeedToFetch, markFeedFetched } from "./lib/db/queries/feeds";
 import { Feed, User } from "./lib/db/schema";
 import { createFeedFollow, getFeedFollowsForUser, deleteFeedFlollow } from "./lib/db/queries/feed_follow";
 
@@ -39,6 +39,98 @@ export async function runCommand(registry: CommandRegistry, cmdName: string, ...
 
   await registry[cmdName](cmdName, ...args);
 };
+
+// ---------------------------- Helpers ---------------------------- // 
+
+function printFeed(feed: Feed, user: User) {
+  console.log(`* ID:            ${feed.id}`);
+  console.log(`* Created:       ${feed.createdAt}`);
+  console.log(`* Updated:       ${feed.updatedAt}`);
+  console.log(`* name:          ${feed.name}`);
+  console.log(`* URL:           ${feed.url}`);
+  console.log(`* User:          ${user.name}`);
+}
+
+function parseDuration(durationStr: string) {
+  const regex = /^(\d+)(ms|s|m|h)$/;
+  const match = durationStr.match(regex);
+
+  if (!match) {
+    throw new Error(`Invalid duration string: ${durationStr}`);
+  }
+
+  const time = parseInt(match[1]);
+  const unit = match[2];
+  let timeInMS; 
+  switch (unit) {
+    case "ms":
+      timeInMS = time;
+      break;
+    case "s":
+      timeInMS = time * 1000;
+      break;
+    case "m":
+      timeInMS = time * 60 * 1000;
+      break;
+    case "h":
+      timeInMS = time * 60 * 60 * 1000;
+      break;
+    default:
+      throw new Error(`Invalid duration unit: ${unit}`);
+  }
+
+  let timeToAnnounce;
+  if (timeInMS < 1000) {
+    timeToAnnounce = `${timeInMS}ms`;
+  } else if (timeInMS < 60 * 1000) {
+    const seconds = Math.floor(timeInMS / 1000);
+    timeToAnnounce = `${seconds}s$`;
+  } else if (timeInMS < 60 * 60 * 1000) { 
+    const minutes = Math.floor(timeInMS / (1000 * 60));
+    const seconds = Math.floor((timeInMS % (1000 * 60)) / 1000);
+    timeToAnnounce = `${minutes}m${seconds}s`;
+  } else {
+    const hours = Math.floor(timeInMS / (1000 * 60 * 60));
+    const minutes = Math.floor((timeInMS % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((timeInMS % (1000 * 60)) / 1000);
+    timeToAnnounce = `${hours}h${minutes}m${seconds}s`;
+  }
+
+  console.log(`Collecting feeds every ${timeToAnnounce}`);
+  return timeInMS;
+}
+
+async function scrapeFeeds() {
+  const feedToMark = await getNextFeedToFetch();
+  if (!feedToMark) {
+    throw new Error("No feeds to fetch");
+  }
+
+  const feedToFetch = await markFeedFetched(feedToMark.id);
+  if (!feedToFetch) {
+    throw new Error("Failed to mark feed as fetched");
+  }
+
+  const feedData = await fetchFeed(feedToFetch.url);
+  if (!feedData) {
+    throw new Error("Failed to fetch feed");
+  }
+
+  for (const item of feedData.channel.item) {
+    console.log(item.title);
+  }
+}
+
+function handleError(error: any) {
+  if (error instanceof Error) {
+    console.error(`Error: ${error.message}`);
+  } else {
+    console.error(`An unknown error occurred: ${error}`);
+  }
+}
+
+// ---------------------------- Non Logged In Handlers ---------------------------- // 
+
 
 export async function handlerLogin(cmdName: string, ...args: string[]) {
   if (args.length !== 1) {
@@ -95,24 +187,25 @@ export async function handlerUsers(cmdName: string, ...args: string[]) {
 };
 
 export async function handlerAgg(cmdName: string, ...args: string[]) {
-  if (args.length !== 0) {
-    throw new Error(`usage: ${cmdName}`);
+  if (args.length !== 1) {
+    throw new Error(`usage: ${cmdName} <time_between_reqs>`);
   }
-  const feedURL = "https://www.wagslane.dev/index.xml";
 
-  const feedData = await fetchFeed(feedURL);
-  const feedDataStr = JSON.stringify(feedData, null, 2);
-  console.log(feedDataStr);
+  const timeBetweenRequests = parseDuration(args[0]);
+
+  scrapeFeeds().catch(handleError);
+  const interval = setInterval(() => {
+    scrapeFeeds().catch(handleError);
+  }, timeBetweenRequests);
+
+  await new Promise<void>((resolve) => {
+    process.on("SIGINT", () => {
+      console.log("Shutting down feed aggregator...");
+      clearInterval(interval);
+      resolve();
+    });
+  });
 };
-
-function printFeed(feed: Feed, user: User) {
-  console.log(`* ID:            ${feed.id}`);
-  console.log(`* Created:       ${feed.createdAt}`);
-  console.log(`* Updated:       ${feed.updatedAt}`);
-  console.log(`* name:          ${feed.name}`);
-  console.log(`* URL:           ${feed.url}`);
-  console.log(`* User:          ${user.name}`);
-}
 
 export async function handlerFeeds(cmdName: string, ...args: string[]) {
   if (args.length !== 0) {
@@ -127,7 +220,7 @@ export async function handlerFeeds(cmdName: string, ...args: string[]) {
   }
 }
 
-// ---------------------------- LoggedInFucntions ---------------------------- // 
+// ---------------------------- Logged In Handlers ---------------------------- // 
 
 export async function handlerAddFeed(cmdName: string, user: User, ...args: string[]) {
   if (args.length !== 2) {
