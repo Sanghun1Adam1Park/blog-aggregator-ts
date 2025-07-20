@@ -43,12 +43,12 @@ export async function fetchFeed(feedUrl: string) {
   if (chanel.item && Array.isArray(chanel.item)) {
     for (let item of chanel.item) {
       if (item.title && item.link && item.description && item.pubDate) {
-        console.log({
-          title: item.title,
-          link: item.link,
-          description: item.description,
-          pubDate: item.pubDate
-        });
+        // console.log({
+        //   title: item.title,
+        //   link: item.link,
+        //   description: item.description,
+        //   pubDate: item.pubDate
+        // });
         items.push({
           title: item.title,
           link: item.link,

@@ -3,7 +3,10 @@ import { eq, sql } from 'drizzle-orm';
 import { Feed, feeds } from '../schema';
 
 export async function createFeed(name: string, url: string, user_id: string) {
-  const [result] = await db.insert(feeds).values({ name, url, user_id }).returning();
+  const [result] = await db.insert(feeds).values({ 
+    name: name, 
+    url: url, 
+    userId: user_id }).returning();
   return result;
 }
 
@@ -19,7 +22,7 @@ export async function getFeeds() {
 
 export async function markFeedFetched(feed_id: string) {
   const [result] = await db.update(feeds).set({ 
-    last_fetched_at: new Date(), updatedAt: new Date() 
+    lastFetchedAt: new Date(), updatedAt: new Date() 
   }).where(eq(feeds.id, feed_id)).returning();
   return result;
 }

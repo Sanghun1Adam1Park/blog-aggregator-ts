@@ -4,6 +4,7 @@ import { fetchFeed } from "./lib/rss";
 import { createFeed, getFeedByUrl, getFeeds, getNextFeedToFetch, markFeedFetched } from "./lib/db/queries/feeds";
 import { Feed, User } from "./lib/db/schema";
 import { createFeedFollow, getFeedFollowsForUser, deleteFeedFlollow } from "./lib/db/queries/feed_follow";
+import { createPost, getPostsForUsers } from "./lib/db/queries/posts";
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>; 
 export type UserCommandHandler = (cmdName: string, user: User, ...args: string[]) => Promise<void>;
@@ -116,8 +117,9 @@ async function scrapeFeeds() {
     throw new Error("Failed to fetch feed");
   }
 
+  console.log("-------------");
   for (const item of feedData.channel.item) {
-    console.log(item.title);
+    createPost(item.title, item.link, new Date(item.pubDate), feedToFetch.id, item.description);
   }
 }
 
@@ -276,4 +278,20 @@ export async function handlerUnfollow(cmdName: string, user: User,  ...args: str
   }
 
   console.log(`${currentUser.name} unfollowed feed ${feed.name}`);
+}
+
+export async function handlerBrowse(cmdName: string, user: User, ...args: string[]) {
+  if (args.length > 1) {
+    throw new Error(`usage: ${cmdName} [limit]`);
+  }
+
+  const limit = args.length === 1 ? parseInt(args[0]) : 2;
+  const currentUser = user; 
+  const posts = await getPostsForUsers(currentUser.id, limit);
+  for (const post of posts) {
+    console.log(`${post.title}`);
+    console.log(`source: ${post.feedName} from ${post.url}`)
+    console.log(`published: ${post.publishedAt}`);
+    console.log(`description: ${post.description}`);
+  }
 }

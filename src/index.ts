@@ -13,6 +13,7 @@ import {
   handlerFollowing,
   middlewareLoggedIn,
   handlerUnfollow,
+  handlerBrowse,
 } from "./command_handler";
 
 async function main() {
@@ -37,6 +38,7 @@ async function main() {
   reigsterCommand(commandsRegistry, "follow", middlewareLoggedIn(handlerFollow));
   reigsterCommand(commandsRegistry, "following", middlewareLoggedIn(handlerFollowing));
   reigsterCommand(commandsRegistry, "unfollow", middlewareLoggedIn(handlerUnfollow));
+  reigsterCommand(commandsRegistry, "browse", middlewareLoggedIn(handlerBrowse));
 
   try {
     await runCommand(commandsRegistry, cmdName, ...cmdArgs);
